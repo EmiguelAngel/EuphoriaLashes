@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Tokens: se rellenan tras extraer paleta del logo */
+:root {
+  --el-bg: #fde8f2;
+  --el-primary: #f06aa7;
+  --el-primary-strong: #df3f8f;
+  --el-accent: #ff7bb8;
+  --el-alert: #df3f8f;
+}
+
+@theme {
+  --color-el-bg: var(--el-bg);
+  --color-el-primary: var(--el-primary);
+  --color-el-primary-strong: var(--el-primary-strong);
+  --color-el-accent: var(--el-accent);
+  --color-el-alert: var(--el-alert);
+}
+
+html,
+body {
+  height: 100%;
+}
+
