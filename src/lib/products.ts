@@ -4,8 +4,8 @@ import { io } from 'socket.io-client'
 import { getAdminToken } from './auth'
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: token } : {};
+  const token = getAdminToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function listProducts(params?: { search?: string }) {
