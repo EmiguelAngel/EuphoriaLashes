@@ -3,9 +3,9 @@ import { api, API_URL } from './api'
 import { io } from 'socket.io-client'
 import { getAdminToken } from './auth'
 
-function authHeaders() {
-  const token = getAdminToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: token } : {};
 }
 
 export async function listProducts(params?: { search?: string }) {

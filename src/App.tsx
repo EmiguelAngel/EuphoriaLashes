@@ -5,7 +5,7 @@ import { AdminLoginPage } from './pages/AdminLoginPage'
 import { clearAdminToken, verifyAdminSession } from './lib/auth'
 import { useEffect, useState } from 'react'
 
-function RequireAdmin({ children }: { children: JSX.Element }) {
+function RequireAdmin({ children }: { children: React.ReactElement }) {
   const [status, setStatus] = useState<'checking' | 'ok' | 'no'>('checking')
 
   useEffect(() => {
