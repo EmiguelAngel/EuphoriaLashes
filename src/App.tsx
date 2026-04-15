@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from './pages/HomePage'
+import { ProductDetailPage } from './pages/ProductDetailPage'
 import { AdminPage } from './pages/AdminPage'
 import { AdminLoginPage } from './pages/AdminLoginPage'
 import { clearAdminToken, verifyAdminSession } from './lib/auth'
@@ -37,6 +38,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/product/:id" element={<ProductDetailPage />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         path="/admin"

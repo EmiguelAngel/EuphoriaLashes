@@ -8,6 +8,7 @@ create table if not exists public.products (
   price numeric not null,
   stock integer not null,
   image_url text,
+  images jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 

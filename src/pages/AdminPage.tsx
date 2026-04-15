@@ -9,31 +9,13 @@ import { createProduct, deleteProduct, listProducts, subscribeProducts, updatePr
 import type { Product } from '../lib/types'
 import { clearAdminToken } from '../lib/auth'
 import { uploadProductImage } from '../lib/upload'
+import { productImageSrc } from '../lib/imageUrl'
 
 const OptionalTextToNull = z
   .string()
   .optional()
   .transform((v) => (v ?? '').trim())
   .transform((v) => (v.length ? v : null))
-
-const OptionalImageRef = z
-  .string()
-  .optional()
-  .transform((v) => (v ?? '').trim())
-  .transform((v) => (v.length ? v : null))
-  .refine(
-    (v) => {
-      if (v === null) return true
-      if (v.startsWith('/uploads/')) return true
-      try {
-        const u = new URL(v)
-        return u.protocol === 'http:' || u.protocol === 'https:'
-      } catch {
-        return false
-      }
-    },
-    { message: 'Debe ser una URL válida o una ruta /uploads/…' },
-  )
 
 const ProductSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido'),
@@ -47,7 +29,6 @@ const ProductSchema = z.object({
     .refine((v) => Number.isFinite(v), { message: 'El stock debe ser número' })
     .int('El stock debe ser entero')
     .nonnegative('El stock debe ser >= 0'),
-  image_url: OptionalImageRef,
 })
 
 type ProductFormState = {
@@ -55,15 +36,30 @@ type ProductFormState = {
   description?: string
   price: string
   stock: string
-  image_url?: string
 }
 
 function formatPrice(value: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(value)
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value)
 }
 
 function emptyForm(): ProductFormState {
-  return { name: '', description: '', price: '0', stock: '0', image_url: '' }
+  return { name: '', description: '', price: '0', stock: '0' }
+}
+
+function isValidImageRef(v: string) {
+  const s = v.trim()
+  if (!s) return false
+  if (s.startsWith('/uploads/')) return true
+  try {
+    const u = new URL(s)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 export function AdminPage() {
@@ -76,7 +72,12 @@ export function AdminPage() {
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState<ProductFormState>(emptyForm())
-  const [imageFile, setImageFile] = useState<File | null>(null)
+  /** URLs ya guardadas o subidas en esta sesión (orden = galería) */
+  const [gallery, setGallery] = useState<string[]>([])
+  /** Archivos pendientes de subir al guardar */
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  /** Una URL externa por línea (opcional) */
+  const [extraUrls, setExtraUrls] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const title = editing ? 'Editar producto' : 'Añadir producto'
@@ -105,7 +106,9 @@ export function AdminPage() {
   function openCreate() {
     setEditing(null)
     setForm(emptyForm())
-    setImageFile(null)
+    setGallery([])
+    setPendingFiles([])
+    setExtraUrls('')
     setFieldErrors({})
     setModalOpen(true)
   }
@@ -117,9 +120,11 @@ export function AdminPage() {
       description: p.description ?? '',
       price: String(p.price),
       stock: String(p.stock),
-      image_url: p.image_url ?? '',
     })
-    setImageFile(null)
+    const imgs = p.images?.length ? p.images : p.image_url ? [p.image_url] : []
+    setGallery(imgs)
+    setPendingFiles([])
+    setExtraUrls('')
     setFieldErrors({})
     setModalOpen(true)
   }
@@ -155,11 +160,24 @@ export function AdminPage() {
     setSaving(true)
     setError(null)
     try {
-      let image_url: string | null = parsed.data.image_url ?? null
-      if (imageFile) {
-        image_url = await uploadProductImage(imageFile)
+      const fromLines = extraUrls
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      for (const u of [...gallery, ...fromLines]) {
+        if (!isValidImageRef(u)) {
+          setFieldErrors({ gallery: 'Alguna URL o ruta de imagen no es válida' })
+          setSaving(false)
+          return
+        }
       }
-      const payload = { ...parsed.data, image_url }
+      const uploaded: string[] = []
+      for (const f of pendingFiles) {
+        uploaded.push(await uploadProductImage(f))
+      }
+      const images = [...gallery, ...fromLines, ...uploaded]
+      const image_url = images[0] ?? null
+      const payload = { ...parsed.data, images, image_url }
       if (editing) {
         await updateProduct(editing.id, payload)
       } else {
@@ -344,24 +362,71 @@ export function AdminPage() {
             />
           </div>
 
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-neutral-700">Galería de imágenes</div>
+            {fieldErrors.gallery ? <div className="text-xs text-[color:var(--el-alert)]">{fieldErrors.gallery}</div> : null}
+            {gallery.length ? (
+              <div className="flex flex-wrap gap-2">
+                {gallery.map((url, idx) => {
+                  const src = productImageSrc(url)
+                  return (
+                    <div key={`${url}-${idx}`} className="relative h-20 w-20 overflow-hidden rounded-lg ring-1 ring-black/10">
+                      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : null}
+                      <button
+                        type="button"
+                        className="absolute right-0.5 top-0.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                        onClick={() => setGallery((g) => g.filter((_, i) => i !== idx))}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-xs text-neutral-500">Aún no hay imágenes en la galería.</div>
+            )}
+          </div>
+
           <label className="block space-y-1">
-            <div className="text-xs font-medium text-neutral-700">Imagen desde tu equipo</div>
+            <div className="text-xs font-medium text-neutral-700">Subir imágenes (varias)</div>
             <input
               type="file"
+              multiple
               accept="image/jpeg,image/png,image/webp,image/gif"
               className="block w-full text-sm text-neutral-700 file:mr-3 file:rounded-lg file:border-0 file:bg-[color:var(--el-primary)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[color:var(--el-primary-strong)]"
-              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                const next = Array.from(e.target.files ?? [])
+                setPendingFiles((prev) => [...prev, ...next])
+                e.target.value = ''
+              }}
             />
-            <div className="text-xs text-neutral-500">Si eliges un archivo, se usará en lugar de la URL. Máx. 5 MB.</div>
+            <div className="text-xs text-neutral-500">Se suben al guardar. Máx. 5 MB por archivo.</div>
           </label>
 
-          <TextField
-            label="URL de imagen externa (opcional)"
-            value={form.image_url ?? ''}
-            onChange={(e) => setForm((s) => ({ ...s, image_url: e.target.value }))}
-            error={fieldErrors.image_url}
-            placeholder="https://… (solo si no subes archivo)"
-          />
+          {pendingFiles.length ? (
+            <ul className="space-y-1 rounded-xl bg-black/[0.03] p-3 text-xs text-neutral-700">
+              {pendingFiles.map((f, i) => (
+                <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2">
+                  <span className="truncate">{f.name}</span>
+                  <button type="button" className="shrink-0 text-[color:var(--el-alert)]" onClick={() => setPendingFiles((p) => p.filter((_, j) => j !== i))}>
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <label className="block space-y-1">
+            <div className="text-xs font-medium text-neutral-700">URLs externas extra (opcional, una por línea)</div>
+            <textarea
+              value={extraUrls}
+              onChange={(e) => setExtraUrls(e.target.value)}
+              rows={3}
+              placeholder={'https://…\nhttps://…'}
+              className="w-full rounded-xl bg-white px-3 py-2 text-sm shadow-sm ring-1 ring-black/10 outline-none transition focus:ring-2 focus:ring-[color:var(--el-primary)]"
+            />
+          </label>
         </div>
       </Modal>
     </div>

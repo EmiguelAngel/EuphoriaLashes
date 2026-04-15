@@ -2,7 +2,7 @@
 
 Aplicación web para una tienda de accesorios de pestañas con:
 
-- **Catálogo público** en `/` con buscador por nombre
+- **Catálogo público** en `/` con buscador por nombre y **ficha de producto** en `/product/:id`
 - **Panel Admin** en `/admin` con CRUD completo y confirmación de borrado
 - **Sincronización en tiempo real** (el catálogo se actualiza cuando cambias productos en admin)
 - **Diseño mobile-first** con estética premium (rounded-xl, sombras suaves y espacio en blanco)
@@ -57,8 +57,15 @@ Las contraseñas se guardan con **bcrypt**; no van en texto plano en la base.
 
 ### Imágenes de productos
 
-- Puedes seguir usando URLs externas en `image_url` (por compatibilidad con datos viejos).
-- En el panel admin también puedes **subir archivos** (JPG/PNG/WEBP/GIF, máx. 5 MB). Se guardan en `server/uploads/` y la API las sirve en `/uploads/...`.
+- Cada producto puede tener **varias imágenes** (columna JSON `images` en PostgreSQL).
+- Si tu base ya existía antes de esta función, ejecuta una vez:
+
+```bash
+npm run migrate:images
+```
+
+- Puedes seguir usando URLs externas (compatibilidad con `image_url` antiguo).
+- En el panel admin puedes **subir varios archivos** (JPG/PNG/WEBP/GIF, máx. 5 MB c/u). Se guardan en `server/uploads/` y la API las sirve en `/uploads/...`.
 
 ### Realtime
 
@@ -89,6 +96,7 @@ npm run dev:clean
 Abre:
 
 - `/` catálogo
+- `/product/<id>` detalle del producto
 - `/admin` panel de administración
 - `/admin/login` acceso de administrador
 

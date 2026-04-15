@@ -4,14 +4,25 @@ import { io } from 'socket.io-client'
 import { getAdminToken } from './auth'
 
 function authHeaders(): Record<string, string> {
-  const token = getAdminToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const token = getAdminToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function ensureGallery(p: Product): Product {
+  const imgs = p.images?.length ? p.images : p.image_url ? [p.image_url] : []
+  return { ...p, images: imgs, image_url: imgs[0] ?? null }
 }
 
 export async function listProducts(params?: { search?: string }) {
   const search = params?.search?.trim()
   const qs = search ? `?search=${encodeURIComponent(search)}` : ''
-  return await api<Product[]>(`/api/products${qs}`)
+  const data = await api<Product[]>(`/api/products${qs}`)
+  return data.map(ensureGallery)
+}
+
+export async function getProduct(id: string) {
+  const p = await api<Product>(`/api/products/${encodeURIComponent(id)}`)
+  return ensureGallery(p)
 }
 
 export async function createProduct(input: ProductInsert) {

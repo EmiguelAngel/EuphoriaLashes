@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "palette:extract": "node scripts/extract-palette.mjs",
-    "seed:admin": "node scripts/seed-admin.mjs"
+    "seed:admin": "node scripts/seed-admin.mjs",
+    "migrate:images": "node scripts/ensure-product-images.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

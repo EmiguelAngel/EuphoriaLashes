@@ -35,7 +35,51 @@ const ProductSchema = z.object({
   price: z.number(),
   stock: z.number().int(),
   image_url: z.string().nullable().optional(),
+  images: z.array(z.string()).optional(),
 })
+
+function parseImagesFromRow(row) {
+  const raw = row.images
+  if (raw == null) return []
+  if (Array.isArray(raw)) return raw.filter((x) => typeof x === 'string' && x.trim())
+  return []
+}
+
+function normalizeImagesPayload(body) {
+  let imgs = []
+  if (Array.isArray(body.images) && body.images.length) {
+    imgs = body.images.map((x) => String(x).trim()).filter(Boolean)
+  }
+  if (!imgs.length && body.image_url != null && String(body.image_url).trim()) {
+    imgs = [String(body.image_url).trim()]
+  }
+  const image_url = imgs[0] ?? null
+  return { images: imgs, image_url }
+}
+
+function applyGalleryPatch(patch) {
+  const hasImages = Object.prototype.hasOwnProperty.call(patch, 'images')
+  const hasUrl = Object.prototype.hasOwnProperty.call(patch, 'image_url')
+  if (!hasImages && !hasUrl) return patch
+  const next = { ...patch }
+  if (hasImages && Array.isArray(next.images)) {
+    const imgs = next.images.map((x) => String(x).trim()).filter(Boolean)
+    next.images = imgs
+    next.image_url = imgs[0] ?? null
+    return next
+  }
+  if (hasUrl) {
+    if (next.image_url == null || String(next.image_url).trim() === '') {
+      next.images = []
+      next.image_url = null
+    } else {
+      const u = String(next.image_url).trim()
+      next.images = [u]
+      next.image_url = u
+    }
+  }
+  return next
+}
 
 const allowedUploadMimes = new Map([
   ['image/jpeg', '.jpg'],
@@ -60,13 +104,19 @@ const upload = multer({
 })
 
 function mapProduct(row) {
+  let images = parseImagesFromRow(row)
+  if (!images.length && row.image_url && String(row.image_url).trim()) {
+    images = [String(row.image_url).trim()]
+  }
+  const image_url = images[0] ?? null
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     price: Number(row.price),
     stock: row.stock,
-    image_url: row.image_url,
+    image_url,
+    images,
     created_at: row.created_at,
   }
 }
@@ -174,14 +224,26 @@ app.get('/api/products', async (req, res) => {
   }
 })
 
+app.get('/api/products/:id', async (req, res) => {
+  const id = req.params.id
+  try {
+    const { rows } = await pool.query('select * from public.products where id = $1', [id])
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' })
+    res.json(mapProduct(rows[0]))
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'DB error' })
+  }
+})
+
 app.post('/api/products', requireAdmin, async (req, res) => {
   const parsed = ProductSchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
   const p = parsed.data
+  const { images, image_url } = normalizeImagesPayload(p)
   try {
     const { rows } = await pool.query(
-      'insert into public.products (name, description, price, stock, image_url) values ($1,$2,$3,$4,$5) returning *',
-      [p.name, p.description ?? null, p.price, p.stock, p.image_url ?? null],
+      'insert into public.products (name, description, price, stock, image_url, images) values ($1,$2,$3,$4,$5,$6::jsonb) returning *',
+      [p.name, p.description ?? null, p.price, p.stock, image_url, JSON.stringify(images)],
     )
     broadcastProductsChanged()
     res.status(201).json(mapProduct(rows[0]))
@@ -195,11 +257,16 @@ app.patch('/api/products/:id', requireAdmin, async (req, res) => {
   const parsed = ProductSchema.partial().safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
 
-  const patch = parsed.data
+  const patch = applyGalleryPatch(parsed.data)
   const fields = []
   const values = []
   let i = 1
   for (const [k, v] of Object.entries(patch)) {
+    if (k === 'images') {
+      fields.push(`images = $${i++}::jsonb`)
+      values.push(JSON.stringify(Array.isArray(v) ? v : []))
+      continue
+    }
     fields.push(`${k} = $${i++}`)
     values.push(v ?? null)
   }
