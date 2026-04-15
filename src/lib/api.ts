@@ -1,4 +1,5 @@
-const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').trim().replace(/\/+$/, '')
+const rawApiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').trim().replace(/\/+$/, '')
+const API_URL = import.meta.env.DEV ? rawApiUrl || 'http://localhost:5174' : ''
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
