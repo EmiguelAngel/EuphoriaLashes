@@ -17,15 +17,47 @@ const OptionalTextToNull = z
   .transform((v) => (v ?? '').trim())
   .transform((v) => (v.length ? v : null))
 
+function coerceEsNumber(input: unknown): number {
+  if (typeof input === 'number') return input
+  const raw = String(input ?? '').trim()
+  if (!raw) return NaN
+
+  // Permite formatos típicos: "35000", "35.000", "35,000", "35 000", "35.000,50"
+  // y normaliza a notación JS con "." como decimal y sin separadores de miles.
+  const s = raw.replace(/\s+/g, '').replace(/[^\d.,-]/g, '')
+
+  // Caso miles con puntos: 12.345.678
+  if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) return Number(s.replace(/\./g, ''))
+  // Caso miles con comas: 12,345,678
+  if (/^-?\d{1,3}(,\d{3})+$/.test(s)) return Number(s.replace(/,/g, ''))
+
+  // Si hay ambos, el último separador se asume decimal.
+  const lastDot = s.lastIndexOf('.')
+  const lastComma = s.lastIndexOf(',')
+  if (lastDot !== -1 && lastComma !== -1) {
+    if (lastComma > lastDot) return Number(s.replace(/\./g, '').replace(',', '.'))
+    return Number(s.replace(/,/g, ''))
+  }
+
+  // Solo coma: decimal "10,5" o miles "10,000"
+  if (lastComma !== -1) {
+    if (/^-?\d+,\d+$/.test(s)) return Number(s.replace(',', '.'))
+    return Number(s.replace(/,/g, ''))
+  }
+
+  // Solo punto: decimal "10.5" o miles "10.000"
+  return Number(s)
+}
+
+const EsNumber = z.preprocess(coerceEsNumber, z.number())
+
 const ProductSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido'),
   description: OptionalTextToNull,
-  price: z.coerce
-    .number()
+  price: EsNumber
     .refine((v) => Number.isFinite(v), { message: 'El precio debe ser número' })
     .nonnegative('El precio debe ser >= 0'),
-  stock: z.coerce
-    .number()
+  stock: EsNumber
     .refine((v) => Number.isFinite(v), { message: 'El stock debe ser número' })
     .int('El stock debe ser entero')
     .nonnegative('El stock debe ser >= 0'),
