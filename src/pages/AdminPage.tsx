@@ -6,7 +6,7 @@ import { Button } from '../components/Button'
 import { Modal } from '../components/Modal'
 import { TextField } from '../components/TextField'
 import { createProduct, deleteProduct, listProducts, subscribeProducts, updateProduct } from '../lib/products'
-import type { Product } from '../lib/types'
+import type { Product, ProductInsert } from '../lib/types'
 import { clearAdminToken } from '../lib/auth'
 import { uploadProductImage } from '../lib/upload'
 import { productImageSrc } from '../lib/imageUrl'
@@ -49,18 +49,17 @@ function coerceEsNumber(input: unknown): number {
   return Number(s)
 }
 
-const EsNumber = z.preprocess(coerceEsNumber, z.number())
+const PriceNumber = z.preprocess(coerceEsNumber, z.number().nonnegative('El precio debe ser >= 0'))
+const StockNumber = z.preprocess(
+  coerceEsNumber,
+  z.number().int('El stock debe ser entero').nonnegative('El stock debe ser >= 0'),
+)
 
 const ProductSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido'),
   description: OptionalTextToNull,
-  price: EsNumber
-    .refine((v) => Number.isFinite(v), { message: 'El precio debe ser número' })
-    .nonnegative('El precio debe ser >= 0'),
-  stock: EsNumber
-    .refine((v) => Number.isFinite(v), { message: 'El stock debe ser número' })
-    .int('El stock debe ser entero')
-    .nonnegative('El stock debe ser >= 0'),
+  price: PriceNumber.refine((v) => Number.isFinite(v), { message: 'El precio debe ser número' }),
+  stock: StockNumber.refine((v) => Number.isFinite(v), { message: 'El stock debe ser número' }),
 })
 
 type ProductFormState = {
@@ -209,7 +208,7 @@ export function AdminPage() {
       }
       const images = [...gallery, ...fromLines, ...uploaded]
       const image_url = images[0] ?? null
-      const payload = { ...parsed.data, images, image_url }
+      const payload = { ...parsed.data, images, image_url } satisfies ProductInsert
       if (editing) {
         await updateProduct(editing.id, payload)
       } else {
