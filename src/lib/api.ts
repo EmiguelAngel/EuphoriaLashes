@@ -13,6 +13,10 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     let msg = text || `HTTP ${res.status}`
+    // Si el proxy devuelve HTML (index.html / páginas de error), evita imprimirlo completo.
+    if (msg.trim().startsWith('<!doctype html') || msg.trim().startsWith('<html')) {
+      msg = `HTTP ${res.status}`
+    }
     try {
       const j = JSON.parse(text) as { error?: unknown }
       if (j && typeof j.error === 'string') msg = j.error
