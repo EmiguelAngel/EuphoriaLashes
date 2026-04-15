@@ -49,6 +49,10 @@ export async function deleteProduct(id: string) {
 }
 
 export function subscribeProducts(onChange: () => void) {
+  // En producción (Vercel + rewrites), WebSocket suele fallar.
+  // La app igual funciona sin realtime (los usuarios pueden refrescar).
+  if (!import.meta.env.DEV) return () => {}
+
   const socket = io(API_URL, { transports: ['websocket'] })
   socket.on('connect_error', () => {
     // fallback: no realtime; consumer still has manual refresh
