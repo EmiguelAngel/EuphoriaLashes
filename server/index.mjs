@@ -16,7 +16,9 @@ const AUTH_SECRET = String(process.env.AUTH_SECRET || 'euphoria-dev-secret-chang
 const TOKEN_TTL_SECONDS = 60 * 60 * 12
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const uploadsDir = path.join(__dirname, 'uploads')
+const uploadsDir = process.env.UPLOADS_DIR?.trim()
+  ? path.resolve(process.env.UPLOADS_DIR.trim())
+  : path.join(__dirname, 'uploads')
 fs.mkdirSync(uploadsDir, { recursive: true })
 
 const app = express()
