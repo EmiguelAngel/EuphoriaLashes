@@ -1,5 +1,5 @@
 const rawApiUrl = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').trim().replace(/\/+$/, '')
-const API_URL = import.meta.env.DEV ? rawApiUrl || 'http://localhost:5174' : ''
+const API_URL = rawApiUrl || (import.meta.env.DEV ? 'http://localhost:5174' : '')
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))

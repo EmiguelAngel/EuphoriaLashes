@@ -22,6 +22,7 @@ const uploadsDir = process.env.UPLOADS_DIR?.trim()
 fs.mkdirSync(uploadsDir, { recursive: true })
 
 const app = express()
+app.set('trust proxy', true)
 app.use(cors({ origin: true }))
 app.use('/uploads', express.static(uploadsDir))
 app.use(express.json({ limit: '1mb' }))
@@ -207,7 +208,10 @@ app.post('/api/upload', requireAdmin, (req, res) => {
       return res.status(400).json({ error: msg })
     }
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo' })
-    return res.json({ url: `/uploads/${req.file.filename}` })
+    const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '')
+    const inferredBaseUrl = `${req.protocol}://${req.get('host')}`
+    const baseUrl = publicBaseUrl || inferredBaseUrl
+    return res.json({ url: `${baseUrl}/uploads/${req.file.filename}` })
   })
 })
 
