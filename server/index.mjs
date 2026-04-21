@@ -1,30 +1,36 @@
 import http from 'node:http'
-import path from 'node:path'
-import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
 import bcrypt from 'bcrypt'
 import { Server } from 'socket.io'
 import { z } from 'zod'
+import { v2 as cloudinary } from 'cloudinary'
 import { pool } from './db.mjs'
 
 const PORT = Number(process.env.PORT || 5174)
 const AUTH_SECRET = String(process.env.AUTH_SECRET || 'euphoria-dev-secret-change-me')
 const TOKEN_TTL_SECONDS = 60 * 60 * 12
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const uploadsDir = process.env.UPLOADS_DIR?.trim()
-  ? path.resolve(process.env.UPLOADS_DIR.trim())
-  : path.join(__dirname, 'uploads')
-fs.mkdirSync(uploadsDir, { recursive: true })
+const CLOUDINARY_UPLOAD_FOLDER = String(process.env.CLOUDINARY_UPLOAD_FOLDER || 'euphoria-lashes').trim()
+const hasCloudinaryUrl = Boolean(String(process.env.CLOUDINARY_URL || '').trim())
+const hasCloudinaryNamedCreds =
+  Boolean(String(process.env.CLOUDINARY_CLOUD_NAME || '').trim()) &&
+  Boolean(String(process.env.CLOUDINARY_API_KEY || '').trim()) &&
+  Boolean(String(process.env.CLOUDINARY_API_SECRET || '').trim())
+const hasCloudinaryConfig = hasCloudinaryUrl || hasCloudinaryNamedCreds
+if (hasCloudinaryConfig) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  })
+}
 
 const app = express()
 app.set('trust proxy', true)
 app.use(cors({ origin: true }))
-app.use('/uploads', express.static(uploadsDir))
 app.use(express.json({ limit: '1mb' }))
 
 const loginSchema = z.object({
@@ -92,19 +98,30 @@ const allowedUploadMimes = new Map([
 ])
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const ext = allowedUploadMimes.get(file.mimetype) ?? ''
-      cb(null, `${randomUUID()}${ext}`)
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (allowedUploadMimes.has(file.mimetype)) cb(null, true)
     else cb(new Error('Solo se permiten imágenes JPG, PNG, WEBP o GIF'))
   },
 })
+
+function uploadBufferToCloudinary(file) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: CLOUDINARY_UPLOAD_FOLDER,
+        resource_type: 'image',
+      },
+      (error, result) => {
+        if (error) return reject(error)
+        if (!result?.secure_url) return reject(new Error('Cloudinary no devolvió secure_url'))
+        return resolve(result.secure_url)
+      },
+    )
+    uploadStream.end(file.buffer)
+  })
+}
 
 function mapProduct(row) {
   let images = parseImagesFromRow(row)
@@ -208,10 +225,18 @@ app.post('/api/upload', requireAdmin, (req, res) => {
       return res.status(400).json({ error: msg })
     }
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo' })
-    const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '')
-    const inferredBaseUrl = `${req.protocol}://${req.get('host')}`
-    const baseUrl = publicBaseUrl || inferredBaseUrl
-    return res.json({ url: `${baseUrl}/uploads/${req.file.filename}` })
+    if (!hasCloudinaryConfig) {
+      return res.status(500).json({
+        error:
+          'Cloudinary no está configurado. Define CLOUDINARY_URL o CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET.',
+      })
+    }
+    uploadBufferToCloudinary(req.file)
+      .then((url) => res.json({ url }))
+      .catch((uploadErr) => {
+        const msg = uploadErr instanceof Error ? uploadErr.message : 'Error subiendo a Cloudinary'
+        res.status(502).json({ error: msg })
+      })
   })
 })
 
