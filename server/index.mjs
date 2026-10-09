@@ -3,6 +3,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
+import compression from 'compression'
+import helmet from 'helmet'
 import bcrypt from 'bcrypt'
 import { Server } from 'socket.io'
 import { z } from 'zod'
@@ -37,6 +39,8 @@ if (hasCloudinaryConfig) {
 
 const app = express()
 app.set('trust proxy', true)
+app.use(helmet())
+app.use(compression())
 app.use(cors({ origin: true }))
 app.use(express.json({ limit: '1mb' }))
 
