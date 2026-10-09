@@ -155,7 +155,10 @@ function mapProduct(row) {
 const server = http.createServer(app)
 const io = new Server(server, { cors: { origin: true } })
 
+let cachedProducts = null
+
 function broadcastProductsChanged() {
+  cachedProducts = null
   io.emit('products:changed')
 }
 
@@ -253,6 +256,10 @@ app.post('/api/upload', requireAdmin, (req, res) => {
 
 app.get('/api/products', async (req, res) => {
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
+  if (!search && cachedProducts) {
+    return res.json(cachedProducts)
+  }
+  
   try {
     const { rows } = await pool.query(
       search
@@ -260,7 +267,9 @@ app.get('/api/products', async (req, res) => {
         : 'select * from public.products order by created_at desc',
       search ? [`%${search}%`] : [],
     )
-    res.json(rows.map(mapProduct))
+    const results = rows.map(mapProduct)
+    if (!search) cachedProducts = results
+    res.json(results)
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'DB error' })
   }
