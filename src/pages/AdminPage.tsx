@@ -10,6 +10,7 @@ import type { Product, ProductInsert } from '../lib/types'
 import { clearAdminToken } from '../lib/auth'
 import { uploadProductImage } from '../lib/upload'
 import { productImageSrc } from '../lib/imageUrl'
+import { CATEGORIES, classifyProductCategory, getProductModelBadge } from '../lib/categories'
 
 const OptionalTextToNull = z
   .string()
@@ -129,7 +130,6 @@ export function AdminPage() {
     void refresh()
     const unsub = subscribeProducts(() => void refresh())
     return () => unsub()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const rows = useMemo(() => products, [products])
@@ -274,9 +274,17 @@ export function AdminPage() {
               {rows.map((p) => (
                 <div key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/5">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold">{p.name}</div>
-                      <div className="mt-1 text-xs text-neutral-600">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-sm font-semibold">{p.name}</span>
+                        <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-[color:var(--el-primary-strong)]">
+                          {CATEGORIES[classifyProductCategory(p)].shortName}
+                        </span>
+                        <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
+                          {getProductModelBadge(p)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-neutral-600">
                         {formatPrice(p.price)} · Stock: {p.stock}
                       </div>
                     </div>
@@ -299,6 +307,8 @@ export function AdminPage() {
                 <thead className="bg-black/[0.02] text-xs font-semibold text-neutral-700">
                   <tr>
                     <th className="px-4 py-3">Producto</th>
+                    <th className="px-4 py-3">Sección / Tipo</th>
+                    <th className="px-4 py-3">Modelo / Efecto</th>
                     <th className="px-4 py-3">Precio</th>
                     <th className="px-4 py-3">Stock</th>
                     <th className="px-4 py-3"></th>
@@ -312,6 +322,16 @@ export function AdminPage() {
                         {p.description ? (
                           <div className="mt-1 line-clamp-1 text-xs text-neutral-600">{p.description}</div>
                         ) : null}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-[color:var(--el-primary-strong)] ring-1 ring-rose-200/60">
+                          {CATEGORIES[classifyProductCategory(p)].shortName}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
+                          {getProductModelBadge(p)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-[color:var(--el-primary-strong)]">
                         {formatPrice(p.price)}
