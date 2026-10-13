@@ -4,10 +4,34 @@ import { Link, useParams } from 'react-router-dom'
 import { getProduct, listProducts, subscribeProducts } from '../lib/products'
 import type { Product } from '../lib/types'
 import { productImageSrc } from '../lib/imageUrl'
-import { CATEGORIES, classifyProductCategory, getProductModelBadge } from '../lib/categories'
-import { ProductCard, StockBadge } from '../components/ProductCard'
+import { getProductCategory, getCategoryMeta, getProductModelBadge } from '../lib/categories'
 import { formatPrice } from '../lib/format'
+import { getProductWhatsAppUrl, WHATSAPP_DISPLAY } from '../lib/whatsapp'
 import { Footer } from '../components/Footer'
+import { FloatingWhatsApp } from '../components/FloatingWhatsApp'
+import { ProductCard } from '../components/ProductCard'
+
+function StockBadge({ stock }: { stock: number }) {
+  if (stock <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
+        Agotado temporalmente
+      </span>
+    )
+  }
+  if (stock <= 3) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+        ¡Últimas {stock} unidades!
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
+      Disponible ({stock} en stock)
+    </span>
+  )
+}
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -49,27 +73,21 @@ export function ProductDetailPage() {
 
   const category = useMemo(() => {
     if (!product) return 'tablas'
-    return classifyProductCategory(product)
+    return getProductCategory(product)
   }, [product])
 
-  const categoryMeta = CATEGORIES[category]
+  const categoryMeta = useMemo(() => getCategoryMeta(category), [category])
   const modelBadge = product ? getProductModelBadge(product) : ''
 
   // Otros productos de la misma sección
   const relatedProducts = useMemo(() => {
     if (!product) return []
     return allProducts
-      .filter((p) => p.id !== product.id && classifyProductCategory(p) === category)
+      .filter((p) => p.id !== product.id && getProductCategory(p) === category)
       .slice(0, 4)
   }, [allProducts, product, category])
 
   const mainSrc = gallery[active] ?? null
-
-  const whatsappMessage = product
-    ? encodeURIComponent(
-        `¡Hola Euphoria Lashes! ✨ Me interesa el producto "${product.name}" (${formatPrice(product.price)}). ¿Tienen disponibilidad y cómo puedo realizar el pedido?`,
-      )
-    : ''
 
   return (
     <div className="min-h-dvh bg-[color:var(--el-bg)] text-neutral-900">
@@ -233,17 +251,17 @@ export function ProductDetailPage() {
                   {/* Acciones de Contacto / Compra */}
                   <div className="mt-8 space-y-3 pt-6 border-t border-black/5">
                     <a
-                      href={`https://wa.me/?text=${whatsappMessage}`}
+                      href={getProductWhatsAppUrl(product.name, product.price)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-[#20ba5a] hover:shadow-lg focus:outline-none"
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-[#20ba5a] hover:shadow-lg focus:outline-none active:scale-[0.98]"
                     >
                       <MessageCircle className="h-5 w-5" />
-                      <span>Pedir / Consultar por WhatsApp</span>
+                      <span>Pedir por WhatsApp ({WHATSAPP_DISPLAY})</span>
                     </a>
 
                     <p className="text-center text-[11px] text-neutral-600">
-                      Te atenderemos de inmediato para confirmar disponibilidad y método de entrega.
+                      Te atenderemos de inmediato para confirmar disponibilidad y despacho.
                     </p>
                   </div>
                 </div>
@@ -283,6 +301,7 @@ export function ProductDetailPage() {
       </main>
 
       <Footer />
+      <FloatingWhatsApp />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import type { Product, ProductInsert, ProductUpdate } from './types'
+import type { Category, CategoryInsert, CategoryUpdate, Product, ProductInsert, ProductUpdate } from './types'
 import { api, API_URL } from './api'
 import { io } from 'socket.io-client'
 import { getAdminToken } from './auth'
@@ -48,18 +48,46 @@ export async function deleteProduct(id: string) {
   })
 }
 
+/* --- Categorías dinámicas --- */
+
+export async function listCategories(): Promise<Category[]> {
+  try {
+    return await api<Category[]>('/api/categories')
+  } catch {
+    return []
+  }
+}
+
+export async function createCategory(input: CategoryInsert): Promise<Category> {
+  return await api<Category>('/api/categories', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  })
+}
+
+export async function updateCategory(id: string, patch: CategoryUpdate): Promise<Category> {
+  return await api<Category>(`/api/categories/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify(patch),
+  })
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  await api<void>(`/api/categories/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+}
+
 export function subscribeProducts(onChange: () => void) {
-  // En producción (Vercel + rewrites), WebSocket suele fallar.
-  // La app igual funciona sin realtime (los usuarios pueden refrescar).
   if (!import.meta.env.DEV) return () => {}
 
   const socket = io(API_URL, { transports: ['websocket'] })
-  socket.on('connect_error', () => {
-    // fallback: no realtime; consumer still has manual refresh
-  })
+  socket.on('connect_error', () => {})
   socket.on('products:changed', () => onChange())
   return () => {
     socket.disconnect()
   }
 }
-

@@ -52,10 +52,18 @@ const loginSchema = z.object({
 const ProductSchema = z.object({
   name: z.string().trim().min(1),
   description: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
   price: z.number(),
   stock: z.number().int(),
   image_url: z.string().nullable().optional(),
   images: z.array(z.string()).optional(),
+})
+
+const CategorySchema = z.object({
+  name: z.string().trim().min(1),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  position: z.number().int().optional(),
 })
 
 function parseImagesFromRow(row) {
@@ -144,6 +152,7 @@ function mapProduct(row) {
     id: row.id,
     name: row.name,
     description: row.description,
+    category: row.category ?? null,
     price: Number(row.price),
     stock: row.stock,
     image_url,
@@ -293,8 +302,8 @@ app.post('/api/products', requireAdmin, async (req, res) => {
   const { images, image_url } = normalizeImagesPayload(p)
   try {
     const { rows } = await pool.query(
-      'insert into public.products (name, description, price, stock, image_url, images) values ($1,$2,$3,$4,$5,$6::jsonb) returning *',
-      [p.name, p.description ?? null, p.price, p.stock, image_url, JSON.stringify(images)],
+      'insert into public.products (name, description, category, price, stock, image_url, images) values ($1,$2,$3,$4,$5,$6,$7::jsonb) returning *',
+      [p.name, p.description ?? null, p.category ?? null, p.price, p.stock, image_url, JSON.stringify(images)],
     )
     broadcastProductsChanged()
     res.status(201).json(mapProduct(rows[0]))
@@ -341,6 +350,75 @@ app.delete('/api/products/:id', requireAdmin, async (req, res) => {
   const id = req.params.id
   try {
     await pool.query('delete from public.products where id = $1', [id])
+    broadcastProductsChanged()
+    res.status(204).end()
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'DB error' })
+  }
+})
+
+app.get('/api/categories', async (_req, res) => {
+  try {
+    const { rows } = await pool.query('select * from public.categories order by position asc, created_at asc')
+    res.json(rows)
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'DB error' })
+  }
+})
+
+app.post('/api/categories', requireAdmin, async (req, res) => {
+  const parsed = CategorySchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  const c = parsed.data
+  const slug =
+    c.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || `cat-${Date.now()}`
+  try {
+    const { rows } = await pool.query(
+      'insert into public.categories (id, name, icon, color, position) values ($1, $2, $3, $4, $5) on conflict (id) do update set name = $2, position = $5 returning *',
+      [slug, c.name, c.icon ?? 'Sparkles', c.color ?? 'bg-rose-100/80 text-rose-900 border-rose-200', c.position ?? 0],
+    )
+    broadcastProductsChanged()
+    res.status(201).json(rows[0])
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'DB error' })
+  }
+})
+
+app.patch('/api/categories/:id', requireAdmin, async (req, res) => {
+  const id = req.params.id
+  const parsed = CategorySchema.partial().safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
+  const fields = []
+  const values = []
+  let i = 1
+  for (const [k, v] of Object.entries(parsed.data)) {
+    fields.push(`${k} = $${i++}`)
+    values.push(v ?? null)
+  }
+  if (!fields.length) return res.status(400).json({ error: 'Empty patch' })
+  values.push(id)
+  try {
+    const { rows } = await pool.query(
+      `update public.categories set ${fields.join(', ')} where id = $${i} returning *`,
+      values,
+    )
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' })
+    broadcastProductsChanged()
+    res.json(rows[0])
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'DB error' })
+  }
+})
+
+app.delete('/api/categories/:id', requireAdmin, async (req, res) => {
+  const id = req.params.id
+  try {
+    await pool.query('delete from public.categories where id = $1', [id])
     broadcastProductsChanged()
     res.status(204).end()
   } catch (e) {

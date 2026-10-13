@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* Tokens: se rellenan tras extraer paleta del logo */
+/* Tokens armonizados con la paleta del nuevo logo */
 :root {
   --el-bg: #fdf2f7;
   --el-surface: #ffffff;
-  --el-primary: #f06aa7;
-  --el-primary-strong: #df3f8f;
-  --el-primary-dark: #b8226e;
-  --el-accent: #ff7bb8;
-  --el-alert: #df3f8f;
+  --el-primary: #d67a9d;
+  --el-primary-strong: #ba4f78;
+  --el-primary-dark: #9e3660;
+  --el-accent: #e59bb6;
+  --el-alert: #ba4f78;
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }

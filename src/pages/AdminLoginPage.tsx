@@ -31,9 +31,16 @@ export function AdminLoginPage() {
     <div className="min-h-dvh bg-[color:var(--el-bg)]">
       <main className="mx-auto flex min-h-dvh max-w-md items-center px-4 py-8">
         <form onSubmit={onSubmit} className="w-full space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold">Acceso administrador</h1>
-            <p className="text-sm text-neutral-600">Inicia sesión para gestionar productos.</p>
+          <div className="flex items-center gap-3 pb-2 border-b border-black/5">
+            <img
+              src="/assets/logo.png"
+              alt="Euphoria Lashes"
+              className="h-12 w-12 rounded-full object-cover shadow-sm ring-2 ring-rose-200/80"
+            />
+            <div>
+              <h1 className="text-lg font-bold font-serif-luxury text-neutral-900">Acceso Administrador</h1>
+              <p className="text-xs text-neutral-600">Euphoria Lashes · Gestión de Catálogo</p>
+            </div>
           </div>
 
           <TextField
