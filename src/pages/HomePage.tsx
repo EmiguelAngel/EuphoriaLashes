@@ -195,13 +195,12 @@ export function HomePage() {
                 type="button"
                 onClick={() => setSelectedEffect(ef.id)}
                 className={[
-                  'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-all active:scale-95',
+                  'inline-flex items-center rounded-full px-3.5 py-1 text-xs font-semibold transition-all active:scale-95',
                   selectedEffect === ef.id
                     ? 'bg-[#ba4f78] text-white shadow-xs'
                     : 'bg-white text-neutral-600 shadow-xs ring-1 ring-black/[0.06] hover:bg-neutral-50',
                 ].join(' ')}
               >
-                <span>{ef.icon}</span>
                 <span>{ef.label}</span>
               </button>
             ))}

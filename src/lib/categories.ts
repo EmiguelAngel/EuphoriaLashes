@@ -77,13 +77,13 @@ export const PASTEL_PALETTES = [
   { bg: 'bg-[#e0f2fe]', border: 'border-[#7dd3fc]', text: 'text-[#0369a1]' },
 ]
 
-export const EFFECTS_FILTER: { id: LashEffect; label: string; icon: string }[] = [
-  { id: 'all', label: '', icon: '' },
-  { id: 'volumen', label: '', icon: '' },
-  { id: 'wispy', label: '', icon: '' },
-  { id: 'anime', label: '', icon: '' },
-  { id: 'feline', label: '', icon: '' },
-  { id: 'glam', label: '', icon: '' },
+export const EFFECTS_FILTER: { id: LashEffect; label: string }[] = [
+  { id: 'all', label: 'Todos los estilos' },
+  { id: 'volumen', label: 'Volumen (60D - 100D)' },
+  { id: 'wispy', label: 'Efecto Wispy / Espigas' },
+  { id: 'anime', label: 'Efecto Anime / Doll' },
+  { id: 'feline', label: 'Ojo de Gato / Feline' },
+  { id: 'glam', label: 'Glam & Multi-Efectos' },
 ]
 
 /**
