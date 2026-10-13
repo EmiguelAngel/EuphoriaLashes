@@ -7,9 +7,6 @@ import {
   DEFAULT_CATEGORIES,
   getCategoryMeta,
   getProductCategory,
-  EFFECTS_FILTER,
-  matchesEffectFilter,
-  type LashEffect,
 } from '../lib/categories'
 import { ProductCard } from '../components/ProductCard'
 import { CategoryBar } from '../components/CategoryBar'
@@ -24,9 +21,7 @@ export function HomePage() {
 
   // Filtros activos
   const [activeCategory, setActiveCategory] = useState<string>('all')
-  const [selectedEffect, setSelectedEffect] = useState<LashEffect>('all')
   const [query, setQuery] = useState('')
-  const [onlyInStock, setOnlyInStock] = useState(false)
 
   async function loadData() {
     setError(null)
@@ -76,19 +71,9 @@ export function HomePage() {
         if (!nameMatch && !descMatch) return false
       }
 
-      // 3. Filtro por efecto / estilo
-      if (selectedEffect !== 'all' && !matchesEffectFilter(p, selectedEffect)) {
-        return false
-      }
-
-      // 4. Filtro de stock
-      if (onlyInStock && p.stock <= 0) {
-        return false
-      }
-
       return true
     })
-  }, [products, activeCategory, query, selectedEffect, onlyInStock])
+  }, [products, activeCategory, query])
 
   const activeCategoryMeta = useMemo(() => {
     if (activeCategory === 'all') return null
@@ -97,9 +82,7 @@ export function HomePage() {
 
   function resetFilters() {
     setActiveCategory('all')
-    setSelectedEffect('all')
     setQuery('')
-    setOnlyInStock(false)
   }
 
   return (
@@ -187,38 +170,10 @@ export function HomePage() {
               : 'Selecciona tu modelo favorito y haz tu pedido directo a nuestro WhatsApp con disponibilidad inmediata.'}
           </p>
 
-          {/* Filtros sutiles de estilo y stock */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            {EFFECTS_FILTER.map((ef) => (
-              <button
-                key={ef.id}
-                type="button"
-                onClick={() => setSelectedEffect(ef.id)}
-                className={[
-                  'inline-flex items-center rounded-full px-3.5 py-1 text-xs font-semibold transition-all active:scale-95',
-                  selectedEffect === ef.id
-                    ? 'bg-[#ba4f78] text-white shadow-xs'
-                    : 'bg-white text-neutral-600 shadow-xs ring-1 ring-black/[0.06] hover:bg-neutral-50',
-                ].join(' ')}
-              >
-                <span>{ef.label}</span>
-              </button>
-            ))}
-
-            <label className="ml-2 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-700 shadow-xs ring-1 ring-black/[0.06] select-none">
-              <input
-                type="checkbox"
-                checked={onlyInStock}
-                onChange={(e) => setOnlyInStock(e.target.checked)}
-                className="h-3.5 w-3.5 rounded text-[#ba4f78] focus:ring-[#ba4f78]"
-              />
-              <span>Solo en stock</span>
-            </label>
-          </div>
         </div>
 
         {/* Feedback de filtros */}
-        {(query || selectedEffect !== 'all' || activeCategory !== 'all' || onlyInStock) && (
+        {(query || activeCategory !== 'all') && (
           <div className="mb-6 flex items-center justify-between rounded-xl bg-white/80 px-4 py-2 text-xs shadow-xs ring-1 ring-black/[0.04]">
             <div className="flex items-center gap-2 text-neutral-600">
               <Sparkles className="h-3.5 w-3.5 text-[#ba4f78]" />
