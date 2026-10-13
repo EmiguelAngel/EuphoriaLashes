@@ -78,12 +78,12 @@ export const PASTEL_PALETTES = [
 ]
 
 export const EFFECTS_FILTER: { id: LashEffect; label: string; icon: string }[] = [
-  { id: 'all', label: 'Todos los estilos', icon: '✨' },
-  { id: 'volumen', label: 'Volumen (60D - 100D)', icon: '🔥' },
-  { id: 'wispy', label: 'Efecto Wispy / Espigas', icon: '🪶' },
-  { id: 'anime', label: 'Efecto Anime / Doll', icon: '🎀' },
-  { id: 'feline', label: 'Ojo de Gato / Feline', icon: '🐱' },
-  { id: 'glam', label: 'Glam & Multi-Efectos', icon: '💎' },
+  { id: 'all', label: 'Todos los estilos', icon: '' },
+  { id: 'volumen', label: 'Volumen (60D - 100D)', icon: '' },
+  { id: 'wispy', label: 'Efecto Wispy / Espigas', icon: '' },
+  { id: 'anime', label: 'Efecto Anime / Doll', icon: '' },
+  { id: 'feline', label: 'Ojo de Gato / Feline', icon: '' },
+  { id: 'glam', label: 'Glam & Multi-Efectos', icon: '' },
 ]
 
 /**
