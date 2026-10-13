@@ -1,4 +1,4 @@
-import { Search, X, Sparkles, Shield } from 'lucide-react'
+import { Search, X, Sparkles, Shield, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listCategories, listProducts, subscribeProducts } from '../lib/products'
@@ -12,8 +12,10 @@ import { ProductCard } from '../components/ProductCard'
 import { CategoryBar } from '../components/CategoryBar'
 import { Footer } from '../components/Footer'
 import { FloatingWhatsApp } from '../components/FloatingWhatsApp'
+import { useCart } from '../lib/cart'
 
 export function HomePage() {
+  const { openCart, totalCount } = useCart()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -130,8 +132,23 @@ export function HomePage() {
             </label>
           </div>
 
-          {/* Botón de Acceso al Panel de Administración */}
+          {/* Acciones: Carrito y Panel Admin */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openCart}
+              className="relative inline-flex items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-800 shadow-xs transition hover:bg-neutral-50 active:scale-95"
+              aria-label="Abrir carrito"
+            >
+              <ShoppingBag className="h-4 w-4 text-[color:var(--el-primary)]" />
+              <span className="hidden sm:inline">Carrito</span>
+              {totalCount > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#ba4f78] px-1 text-[10px] font-bold text-white tabular-nums">
+                  {totalCount}
+                </span>
+              )}
+            </button>
+
             <Link
               to="/admin"
               className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-transform hover:bg-neutral-800 active:scale-95"
@@ -238,6 +255,20 @@ export function HomePage() {
 
       {/* Footer sin la sección de administración */}
       <Footer categories={categories} onSelectCategory={setActiveCategory} />
+
+      {/* Botón flotante de Carrito */}
+      {totalCount > 0 && (
+        <aside className="fixed bottom-20 right-6 z-40">
+          <button
+            type="button"
+            onClick={openCart}
+            className="flex items-center gap-2 rounded-full bg-[#ba4f78] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-rose-900/25 transition-all hover:bg-[#9e3660] hover:scale-105 active:scale-95"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span>Ver Carrito ({totalCount})</span>
+          </button>
+        </aside>
+      )}
 
       {/* Botón flotante de WhatsApp */}
       <FloatingWhatsApp />

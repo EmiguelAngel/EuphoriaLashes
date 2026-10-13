@@ -5,6 +5,8 @@ import { AdminPage } from './pages/AdminPage'
 import { AdminLoginPage } from './pages/AdminLoginPage'
 import { clearAdminToken, verifyAdminSession } from './lib/auth'
 import { useEffect, useState } from 'react'
+import { CartProvider } from './lib/cart'
+import { CartDrawer } from './components/CartDrawer'
 
 function RequireAdmin({ children }: { children: React.ReactElement }) {
   const [status, setStatus] = useState<'checking' | 'ok' | 'no'>('checking')
@@ -36,20 +38,23 @@ function RequireAdmin({ children }: { children: React.ReactElement }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/product/:id" element={<ProductDetailPage />} />
-      <Route path="/admin/login" element={<AdminLoginPage />} />
-      <Route
-        path="/admin"
-        element={
-          <RequireAdmin>
-            <AdminPage />
-          </RequireAdmin>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <CartProvider>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/product/:id" element={<ProductDetailPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <AdminPage />
+            </RequireAdmin>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <CartDrawer />
+    </CartProvider>
   )
 }
 

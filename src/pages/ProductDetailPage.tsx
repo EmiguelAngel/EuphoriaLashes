@@ -1,4 +1,4 @@
-import { ChevronLeft, MessageCircle, Sparkles, Layers, ShieldCheck, Truck } from 'lucide-react'
+import { ChevronLeft, MessageCircle, Sparkles, Layers, ShieldCheck, Truck, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getProduct, listProducts, subscribeProducts } from '../lib/products'
@@ -6,10 +6,11 @@ import type { Product } from '../lib/types'
 import { productImageSrc } from '../lib/imageUrl'
 import { getProductCategory, getCategoryMeta, getProductModelBadge } from '../lib/categories'
 import { formatPrice } from '../lib/format'
-import { getProductWhatsAppUrl, WHATSAPP_DISPLAY } from '../lib/whatsapp'
+import { getProductWhatsAppUrl } from '../lib/whatsapp'
 import { Footer } from '../components/Footer'
 import { FloatingWhatsApp } from '../components/FloatingWhatsApp'
 import { ProductCard } from '../components/ProductCard'
+import { useCart } from '../lib/cart'
 
 function StockBadge({ stock }: { stock: number }) {
   if (stock <= 0) {
@@ -34,6 +35,7 @@ function StockBadge({ stock }: { stock: number }) {
 }
 
 export function ProductDetailPage() {
+  const { addItem, openCart, totalCount } = useCart()
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<Product | null>(null)
   const [allProducts, setAllProducts] = useState<Product[]>([])
@@ -103,7 +105,21 @@ export function ProductDetailPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-block text-xs text-neutral-600">Sección:</span>
+            <button
+              type="button"
+              onClick={openCart}
+              className="relative inline-flex items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs transition hover:bg-neutral-50 active:scale-95"
+              aria-label="Abrir carrito"
+            >
+              <ShoppingBag className="h-4 w-4 text-[color:var(--el-primary)]" />
+              <span className="hidden sm:inline">Carrito</span>
+              {totalCount > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#ba4f78] px-1 text-[10px] font-bold text-white tabular-nums">
+                  {totalCount}
+                </span>
+              )}
+            </button>
+
             <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-[color:var(--el-primary-strong)]">
               {categoryMeta.shortName}
             </span>
@@ -250,18 +266,28 @@ export function ProductDetailPage() {
 
                   {/* Acciones de Contacto / Compra */}
                   <div className="mt-8 space-y-3 pt-6 border-t border-black/5">
+                    <button
+                      type="button"
+                      onClick={() => addItem(product, 1)}
+                      disabled={product.stock <= 0}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ba4f78] px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-[#9e3660] hover:shadow-lg focus:outline-none active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-500"
+                    >
+                      <ShoppingBag className="h-5 w-5" />
+                      <span>{product.stock <= 0 ? 'Agotado' : 'Agregar al carrito'}</span>
+                    </button>
+
                     <a
                       href={getProductWhatsAppUrl(product.name, product.price)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-6 py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-[#20ba5a] hover:shadow-lg focus:outline-none active:scale-[0.98]"
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white px-6 py-3 text-xs font-bold text-neutral-800 shadow-xs transition hover:bg-neutral-50 active:scale-[0.98]"
                     >
-                      <MessageCircle className="h-5 w-5" />
-                      <span>Pedir por WhatsApp ({WHATSAPP_DISPLAY})</span>
+                      <MessageCircle className="h-4 w-4 text-[#25D366]" />
+                      <span>O pedir directamente por WhatsApp</span>
                     </a>
 
                     <p className="text-center text-[11px] text-neutral-600">
-                      Te atenderemos de inmediato para confirmar disponibilidad y despacho.
+                      Te atenderemos de inmediato para coordinar disponibilidad y entrega.
                     </p>
                   </div>
                 </div>
@@ -301,6 +327,19 @@ export function ProductDetailPage() {
       </main>
 
       <Footer />
+      {/* Botón flotante de Carrito si hay items */}
+      {totalCount > 0 && (
+        <aside className="fixed bottom-20 right-6 z-40">
+          <button
+            type="button"
+            onClick={openCart}
+            className="flex items-center gap-2 rounded-full bg-[#ba4f78] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-rose-900/25 transition-all hover:bg-[#9e3660] hover:scale-105 active:scale-95"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span>Ver Carrito ({totalCount})</span>
+          </button>
+        </aside>
+      )}
       <FloatingWhatsApp />
     </div>
   )

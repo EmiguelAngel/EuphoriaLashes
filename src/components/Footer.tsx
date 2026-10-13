@@ -1,5 +1,5 @@
 import { Sparkles, Heart, MessageCircle } from 'lucide-react'
-import { getWhatsAppUrl, WHATSAPP_DISPLAY } from '../lib/whatsapp'
+import { getWhatsAppUrl } from '../lib/whatsapp'
 import type { Category } from '../lib/types'
 import { DEFAULT_CATEGORIES } from '../lib/categories'
 
@@ -77,13 +77,13 @@ export function Footer({ categories = [], onSelectCategory }: FooterProps) {
               ¿Tienes dudas o deseas cotizar tu pedido? Escríbenos directamente a nuestra línea oficial de atención.
             </p>
             <a
-              href={getWhatsAppUrl('¡Hola Euphoria Lashes! Deseo información sobre sus modelos de pestañas.')}
+              href={getWhatsAppUrl('Hola! Deseo hacer un pedido')}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#20ba5a] hover:shadow active:scale-[0.98]"
             >
               <MessageCircle className="h-4 w-4" />
-              <span>WhatsApp: {WHATSAPP_DISPLAY}</span>
+              <span>WhatsApp</span>
             </a>
           </div>
         </div>
